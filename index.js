@@ -3,6 +3,7 @@ import mqtt from 'mqtt';
 import mongoose from "mongoose";
 
 import { Card } from './model/cardInfo.js';
+import { Goods } from './model/goodsModel.js';
 
 const app = express();
 
@@ -150,31 +151,31 @@ app.use(function (req, res, next) {
 // })
 
 // FIX 
-app.post('/add', async (req, res) => {
-    try {
-        // Subscribe to MQTT topic and await the message
-        const message = await new Promise((resolve, reject) => {
-            req.mqttSubscribe('rfid/uid', (msg) => {
-                resolve(msg);
-            });
-        });
+// app.post('/add', async (req, res) => {
+//     try {
+//         // Subscribe to MQTT topic and await the message
+//         const message = await new Promise((resolve, reject) => {
+//             req.mqttSubscribe('rfid/uid', (msg) => {
+//                 resolve(msg);
+//             });
+//         });
 
-        console.log('UID: ' + message);
+//         console.log('UID: ' + message);
 
-        const newCard = {
-            UID: message,
-            name: "test1",
-        };
-        const card = await Card.create(newCard);
+//         const newCard = {
+//             UID: message,
+//             name: "test1",
+//         };
+//         const card = await Card.create(newCard);
 
-        // Send a single response with the created card
-        res.setHeader('Content-Type', 'application/json');
-        res.status(201).json(card);
-    } catch (err) {
-        console.log(err);
-        res.status(500).send({ message: err.message });
-    }
-});
+//         // Send a single response with the created card
+//         res.setHeader('Content-Type', 'application/json');
+//         res.status(201).json(card);
+//     } catch (err) {
+//         console.log(err);
+//         res.status(500).send({ message: err.message });
+//     }
+// });
 
 
 // Route for get info of card
@@ -182,7 +183,7 @@ app.post('/add', async (req, res) => {
 // If card is in the database, 
 // if is_exported is false, return info of card
 // else return UID of card
-app.get('/card', async (req, res) => {
+app.get('/cards/info', async (req, res) => {
     try {
         // Subscribe to MQTT topic and await the message
         const message = await new Promise((resolve, reject) => {
@@ -231,7 +232,7 @@ app.get('/card', async (req, res) => {
 // })
 
 // Route for create a new card
-app.post("/register", async (req, res) => {
+app.post("cards/register", async (req, res) => {
     try {
         if (!req.body.name || !req.body.UID) {
             return respone.status(404).send({
@@ -258,8 +259,8 @@ app.post("/register", async (req, res) => {
 // Route for display all cards with is_exported = false
 app.get("/cards/display", async (req, res) => {
     try {
-        // const cards = await Card.find({ 'is_exported': false });
-        const cards = await Card.find();
+        const cards = await Card.find({ 'is_exported': false });
+        // const cards = await Card.find();
         return res.status(200).json({
             count: cards.length,
             data: cards
@@ -267,6 +268,63 @@ app.get("/cards/display", async (req, res) => {
     } catch (err) {
         console.log(err);
         return res.status(500).send({ message: err.message });
+    }
+});
+
+
+// Route for begin invertion or export card
+app.post("/goods/begin", async (req, res) => {
+    try {
+        if (!req.body.name || !req.body.purpose) {
+            return res.status(404).send({
+                message: 'Send all required fields: name, purpose'
+            });
+        }
+        const newData = {
+            name: req.body.name,
+            purpose: req.body.purpose,
+            begin: req.body.begin,
+            end: req.body.end
+        }
+        const data = await Goods.create(newData);
+        console.log(data);
+        return res.status(201).send(data._id);
+    } catch (err) {
+        console.log(err);
+        return res.status(500).send({ message: err.message });
+    }
+})
+
+// Route for get information about goods
+app.get("/goods/display", async (req, res) => {
+    try {
+        const data = await Goods.find().populate('products');
+        return res.status(200).json({
+            count: data.length,
+            data: data
+        });
+    } catch (err) {
+        console.log(err);
+        return res.status(500).send({ message: err.message });
+    }
+})
+
+
+
+// Route for end invertion or export card
+app.put("/goods/end/:id", async (req, res) => {
+    try {
+        const { id } = req.params;
+        const update = { 
+            products: req.body.products, 
+            end: Date.now() 
+        }
+        console.log(update);
+        const data = await Goods.findByIdAndUpdate( id, update ).populate('products');
+        return res.status(201).send(data);
+    } catch (err) {
+        console.log(err);
+        return res.status(204).send({ message: err.message });
     }
 });
 

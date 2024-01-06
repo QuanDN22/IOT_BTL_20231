@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { Card } from "./model/cardInfo.js";
+import { Card } from "./cardInfo.js";
 
 const goodsSchema = new mongoose.Schema(
     {
@@ -11,13 +11,14 @@ const goodsSchema = new mongoose.Schema(
             type: String,
             required: true
         },
-        products: [{ type: Schema.Types.ObjectId, ref: 'Card' }],
+        products: [{ type: mongoose.Schema.Types.ObjectId, ref: Card }],
         begin: {
             type: Date,
             default: Date.now,
         },
         end: {
             type: Date,
+            default: Date.now
         }
     },
     {
@@ -25,4 +26,4 @@ const goodsSchema = new mongoose.Schema(
     }
 )
 
-export const goods = mongoose.model('Goods_Inventory', goodsSchema);
+export const Goods = mongoose.model('Goods_Inventory', goodsSchema);
