@@ -2,10 +2,19 @@ import express from 'express';
 import mqtt from 'mqtt';
 import mongoose from "mongoose";
 
+import http from 'http';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+import { Server } from 'socket.io';
+
 import { Card } from './model/cardInfo.js';
 import { Goods } from './model/goodsModel.js';
 
 const app = express();
+// const server = http.createServer(app);
+// const io = new Server(server);
+
+// const __dirname = dirname(fileURLToPath(import.meta.url));
 
 // middleware for parsing request body
 app.use(express.json());
@@ -35,6 +44,29 @@ app.use(function (req, res, next) {
     }
     next()
 })
+
+// app.get('/', (req, res) => {
+//     res.sendFile(join(__dirname, 'index.html'));
+// });
+
+// io.on('connection', (socket) => {
+//     console.log('a user connected');
+//     // setInterval(() => {
+//     //     socket.emit("rfid/uid", "0410641C700000"); // Gửi message cho client hiện tại
+//     // }, 1000); // Gửi message mỗi 1 giây
+//     const message = new Promise((resolve, reject) => {
+//         client.subscribe('rfid/uid', (err) => {
+//             if (err) {
+//                 console.error('Error subscribing to topic:', err);
+//             } else {
+//                 console.log('Subscribed to topic successfully');
+//             }
+//         });
+//         client.on('rfid/uid', (message) =>{
+//             socket.emit("rfid/uid", message);
+//         })
+//     });
+// });
 
 // // Route for READ all card
 // app.get('/cards', async (req, res) => {
@@ -194,7 +226,7 @@ app.get('/cards/info', async (req, res) => {
 
         console.log('UID: ' + message);
 
-        const card = await Card.findOne({ UID: message, is_exported: false });
+        const card = await Card.find({ UID: message, is_exported: false });
 
         // Send a single response with the created card
         res.setHeader('Content-Type', 'application/json');
@@ -232,24 +264,33 @@ app.get('/cards/info', async (req, res) => {
 // })
 
 // Route for create a new card
-app.post("cards/register", async (req, res) => {
+app.post("/cards/register", async (req, res) => {
     try {
-        if (!req.body.name || !req.body.UID) {
+        if (!req.body.category_name || !req.body.UID || !req.body.category_id) {
             return respone.status(404).send({
-                message: 'Send all required fields: name'
+                message: 'Send all required fields: UID, category_name, category_id'
             });
         }
-        const newCard = {
-            UID: req.body.UID,
-            name: req.body.name,
-            datein: req.body.datein,
-            dateout: req.body.dateout,
-            prize: req.body.prize,
-            expiry: req.body.expiry,
-            is_exported: false
-        }
-        const card = await Card.create(newCard);
-        return res.status(201).send(card);
+
+        let cards = []
+
+        req.body.UID.forEach(async (id) => {
+            const newCard = {
+                UID: id,
+                category_name: req.body.category_name,
+                category_id: req.body.category_id,
+                date_in: req.body.date_in,
+                date_out: req.body.date_out,
+                is_exported: false
+            }
+            const card = await Card.create(newCard);
+            console.log("card", card);
+            cards.push(card);
+        });
+        console.log("cards: ", cards);
+
+        // return res.status(201).json(cards);
+        return res.status(200).send({ 'message': 'Success' });
     } catch (err) {
         console.log(err);
         return res.status(500).send({ message: err.message });
@@ -259,8 +300,8 @@ app.post("cards/register", async (req, res) => {
 // Route for display all cards with is_exported = false
 app.get("/cards/display", async (req, res) => {
     try {
-        const cards = await Card.find({ 'is_exported': false });
-        // const cards = await Card.find();
+        // const cards = await Card.find({ 'is_exported': false });
+        const cards = await Card.find();
         return res.status(200).json({
             count: cards.length,
             data: cards
@@ -309,18 +350,16 @@ app.get("/goods/display", async (req, res) => {
     }
 })
 
-
-
 // Route for end invertion or export card
 app.put("/goods/end/:id", async (req, res) => {
     try {
         const { id } = req.params;
-        const update = { 
-            products: req.body.products, 
-            end: Date.now() 
+        const update = {
+            products: req.body.products,
+            end: Date.now()
         }
         console.log(update);
-        const data = await Goods.findByIdAndUpdate( id, update ).populate('products');
+        const data = await Goods.findByIdAndUpdate(id, update).populate('products');
         return res.status(201).send(data);
     } catch (err) {
         console.log(err);
@@ -337,6 +376,7 @@ mongoose
     .connect(mongoDBURL)
     .then(() => {
         console.log('App connected to database');
+        // app.listen(PORT, () => {
         app.listen(PORT, () => {
             console.log(`App listening on port ${PORT}`)
         });

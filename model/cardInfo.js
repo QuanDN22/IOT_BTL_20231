@@ -6,26 +6,24 @@ const cardSchema = new mongoose.Schema(
             type: String,
             require: true
         },
-        name: {
+        category_name: {
             type: String,
             require: true
         },
-        datein: { 
+        category_id: {
+            type: String,
+            require: true
+        },
+        date_in: { 
             type: Date, 
             default: Date.now 
         },
-        dateout: {
+        date_out: {
             type: Date
-        },
-        prize: {
-            type: String
-        },
-        expiry: {
-            type: Date, 
         },
         is_exported: {
             type: Boolean,
-            default: false
+            default: false,
         }
     },
     {
