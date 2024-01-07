@@ -12,11 +12,11 @@ const goodsSchema = new mongoose.Schema(
             required: true
         },
         products: [{ type: mongoose.Schema.Types.ObjectId, ref: Card }],
-        begin: {
+        date_in: {
             type: Date,
             default: Date.now,
         },
-        end: {
+        date_out: {
             type: Date,
             default: Date.now
         }

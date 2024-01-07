@@ -267,7 +267,7 @@ app.get('/cards/info', async (req, res) => {
 app.post("/cards/register", async (req, res) => {
     try {
         if (!req.body.category_name || !req.body.UID || !req.body.category_id) {
-            return respone.status(404).send({
+            return res.status(404).send({
                 message: 'Send all required fields: UID, category_name, category_id'
             });
         }
@@ -300,8 +300,8 @@ app.post("/cards/register", async (req, res) => {
 // Route for display all cards with is_exported = false
 app.get("/cards/display", async (req, res) => {
     try {
-        // const cards = await Card.find({ 'is_exported': false });
-        const cards = await Card.find();
+        const cards = await Card.find({ 'is_exported': false });
+        // const cards = await Card.find();
         return res.status(200).json({
             count: cards.length,
             data: cards
@@ -324,8 +324,7 @@ app.post("/goods/begin", async (req, res) => {
         const newData = {
             name: req.body.name,
             purpose: req.body.purpose,
-            begin: req.body.begin,
-            end: req.body.end
+            date_in: req.body.begin,
         }
         const data = await Goods.create(newData);
         console.log(data);
@@ -356,7 +355,7 @@ app.put("/goods/end/:id", async (req, res) => {
         const { id } = req.params;
         const update = {
             products: req.body.products,
-            end: Date.now()
+            date_out: Date.now()
         }
         console.log(update);
         const data = await Goods.findByIdAndUpdate(id, update).populate('products');
@@ -367,6 +366,69 @@ app.put("/goods/end/:id", async (req, res) => {
     }
 });
 
+
+//  EXPORT products
+// Route for begin export products
+app.post("/export/begin", async (req, res) => {
+    try {
+        if (!req.body.name || !req.body.purpose) {
+            return res.status(404).send({
+                message: 'Send all required fields: name, purpose'
+            });
+        }
+        const newData = {
+            name: req.body.name,
+            purpose: req.body.purpose,
+            date_in: req.body.begin,
+        }
+        const data = await Goods.create(newData);
+        console.log(data);
+        return res.status(201).send(data._id);
+    } catch (err) {
+        console.log(err);
+        return res.status(500).send({ message: err.message });
+    }
+})
+
+// Route for end export products
+app.put("/export/end/:id", async (req, res) => {
+    try {
+        const { id } = req.params;
+        const update = {
+            products: req.body.products,
+            date_out: Date.now()
+        }
+        console.log(update);
+        const data = await Goods.findByIdAndUpdate(id, update).populate('products');
+        return res.status(201).send(data);
+    } catch (err) {
+        console.log(err);
+        return res.status(204).send({ message: err.message });
+    }
+});
+
+// Route for export products
+app.put("/cards/export", async (req, res) => {
+    try {
+        if (!req.body.product_ids) {
+            return res.status(404).send({
+                message: 'Send all required fields: product_ids'
+            });
+        }
+
+        req.body.product_ids.forEach(async (id) => {
+            const update_card = {
+                date_out: Date.now(),
+                is_exported: true
+            }
+            const card = await Card.findByIdAndUpdate(id, update_card);
+        });
+        return res.status(200).send({ 'message': 'Success' });
+    } catch (err) {
+        console.log(err);
+        return res.status(204).send({ message: err.message });
+    } 
+})
 
 const PORT = 3000;
 const mongoDBURL = 'mongodb+srv://root:root1234@book-store-mern.9stubvo.mongodb.net/?retryWrites=true&w=majority';
