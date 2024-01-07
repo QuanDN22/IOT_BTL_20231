@@ -25,6 +25,14 @@ const client = mqtt.connect('mqtt://broker.hivemq.com', {
     password: '3QnKD!?Za&i182.SkGbj'
 });
 
+// Enable CORS for all routes
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*'); // Allow requests from any origin
+    res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE'); // Specify the allowed methods
+    res.header('Access-Control-Allow-Headers', 'Content-Type'); // Specify the allowed headers
+    next();
+  });
+
 // MQTT middleware for publishing and subscribing
 app.use(function (req, res, next) {
     // Subscribe to topic
